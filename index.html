@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مركز الملفات — Suite Park</title>
+<!-- Firebase Compat SDK (ملف واحد بدون بناء) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<style>
+:root{
+  --card:#fff;--ink:#17212b;--muted:#5b6774;--line:#e3e7ec;
+  --navy:#0d1f17;--navy2:#173a2c;--danger:#a92828;--success:#19734a;
+  --gold:#b98a2c;--overlay:rgba(13,31,23,.72);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;font-family:Tahoma,Arial,sans-serif;color:var(--ink);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  background:linear-gradient(160deg,#0d1f17 0%,#1a3d2e 40%,#2d5a45 100%);
+  background-attachment:fixed;min-height:100vh;
+}
+.veil{min-height:100vh;background:var(--overlay)}
+header{
+  background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;
+  padding:20px;padding-top:calc(20px + env(safe-area-inset-top,0px));
+  position:sticky;top:0;z-index:3;border-bottom:2px solid var(--gold);
+}
+.brandrow{display:flex;align-items:center;gap:10px}
+.logo{
+  width:34px;height:34px;border-radius:8px;background:var(--gold);color:var(--navy);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;
+}
+.brand{font-size:19px;font-weight:800}
+.sub{opacity:.8;font-size:12px;margin-top:4px}
+.wrap{max-width:800px;margin:auto;padding:16px}
+.card{
+  background:var(--card);border-radius:16px;padding:16px;
+  box-shadow:0 6px 24px #00000033;margin-bottom:12px;border:1px solid var(--line);
+}
+button{
+  border:0;border-radius:10px;padding:10px 14px;cursor:pointer;
+  font-weight:700;font-family:inherit;font-size:13.5px;
+}
+button:disabled{opacity:.55;cursor:not-allowed}
+.primary{background:var(--navy);color:#fff}
+.gold{background:var(--gold);color:var(--navy)}
+.danger{background:var(--danger);color:#fff}
+.ghost{background:#eef2f6;color:var(--ink)}
+.success{background:var(--success);color:#fff}
+input,textarea{
+  width:100%;padding:10px;border:1px solid #d9dee5;border-radius:9px;
+  background:#fff;font-family:inherit;font-size:14px;margin-bottom:8px;
+}
+.form{display:grid;gap:8px}
+.file-row{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;
+}
+.file-row:last-child{border-bottom:none}
+.finfo{min-width:0;flex:1}
+.ftitle{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fmeta{color:var(--muted);font-size:12.5px;margin-top:2px}
+.factions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.muted{color:var(--muted);font-size:13px}
+.hidden{display:none!important}
+.spinner{
+  display:inline-block;width:14px;height:14px;border:2px solid #fff6;
+  border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;
+}
+@keyframes sp{to{transform:rotate(360deg)}}
+.editrow{display:flex;gap:6px;margin-top:8px;width:100%;flex-wrap:wrap}
+.editrow input{margin-bottom:0;flex:1;min-width:120px}
+.banner{
+  background:#fff8e6;border:1px solid #e8d9a0;color:#5c4a12;
+  border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;
+}
+.banner strong{display:block;margin-bottom:4px}
+.auth-bar{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;
+}
+.auth-bar input{margin:0;max-width:200px}
+.auth-status{font-size:12.5px;opacity:.9}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --card:#1b2129ee;--ink:#e7ebf0;--muted:#9aa6b2;--line:#2a323c;
+  }
+  input,textarea{background:#151a20;color:var(--ink);border-color:var(--line)}
+  .ghost{background:#232b34;color:var(--ink)}
+  .banner{background:#2a2618;border-color:#5c4a12;color:#e8d9a0}
+}
+</style>
+</head>
+<body>
+<div class="veil">
+<header>
+  <div class="brandrow">
+    <div class="logo">SP</div>
+    <div>
+      <div class="brand">مركز الملفات — Suite Park</div>
+      <div class="sub">آخر نسخة من ملفاتك المهمة — رابط عام يعمل لأي شخص</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- تنبيه إعداد Firebase: يظهر فقط إذا كانت البيانات غير مضبوطة، مخفي افتراضيًا لتفادي ظهوره لحظيًا للزوار -->
+  <div class="card hidden" id="setupCard">
+    <div class="banner">
+      <strong>إعداد مطلوب مرة واحدة</strong>
+      افتح هذا الملف بمحرر نصوص، ضع بيانات مشروع Firebase في قسم <code>FIREBASE_CONFIG</code> بالأسفل،
+      ثم ارفع الصفحة على أي استضافة (GitHub Pages / Netlify / أي سيرفر) وشارك الرابط.
+      راجع تعليقات الإعداد وقواعد الأمان في نهاية ملف الأكواد (قسم SECURITY RULES).
+    </div>
+    <p class="muted" id="setupStatus">جارِ التحقق من الإعداد...</p>
+  </div>
+
+  <!-- تسجيل دخول الأدمن -->
+  <div class="card" id="authCard" style="display:none">
+    <h3 style="margin-top:0">دخول المالك</h3>
+    <p class="muted" style="margin-top:0">الرفع والتعديل والحذف متاح للمالك فقط بعد تسجيل الدخول.</p>
+    <div class="auth-bar" id="loginForm">
+      <input type="email" id="adminEmail" placeholder="البريد الإلكتروني" autocomplete="username">
+      <input type="password" id="adminPass" placeholder="كلمة المرور" autocomplete="current-password">
+      <button class="gold" id="loginBtn" onclick="doLogin()">دخول</button>
+    </div>
+    <div class="auth-bar hidden" id="logoutBar">
+      <span class="auth-status" id="authStatus"></span>
+      <button class="ghost" onclick="doLogout()">خروج</button>
+    </div>
+  </div>
+
+  <!-- رفع ملف (أدمن فقط) -->
+  <div class="card hidden" id="uploadCard">
+    <h3 style="margin-top:0">رفع ملف جديد</h3>
+    <div class="form">
+      <input id="fTitle" placeholder="اسم الملف / العنوان">
+      <input id="fNote" placeholder="ملاحظة (اختياري)">
+      <input id="filePicker" type="file">
+      <button class="gold" id="uploadBtn" onclick="doUpload()">رفع الملف</button>
+    </div>
+  </div>
+
+  <div class="card" id="readonlyNote">
+    <p class="muted" style="margin:0">أنت تشاهد هذا المركز للاطلاع فقط. رفع أو تعديل الملفات متاح لصاحب المركز بعد تسجيل الدخول.</p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">الملفات</h3>
+      <span class="muted" id="countLabel"></span>
+    </div>
+    <div id="fileList" style="margin-top:8px"><p class="muted">جارِ التحميل...</p></div>
+  </div>
+
+  <input id="updatePicker" type="file" class="hidden">
+</main>
+</div>
+
+<script>
+/* ============================================================
+   1) ضع بيانات مشروع Firebase هنا (من Firebase Console → Project settings)
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBU36T3qyZ_b91-D5a5RRsCpPG0Nl628R0",
+  authDomain: "suite-park.firebaseapp.com",
+  projectId: "suite-park",
+  storageBucket: "suite-park.firebasestorage.app",
+  messagingSenderId: "469380910063",
+  appId: "1:469380910063:web:b29fe9db56fdaf71b0441a"
+};
+
+/* ============================================================
+   التطبيق
+   ============================================================ */
+let app=null, auth=null, db=null, storage=null;
+let isAdmin=false;
+let currentFiles=[];
+let updateTargetId=null, updateTargetPath=null;
+let editingId=null;
+let unsub=null;
+
+function fmtSize(b){
+  if(b==null||isNaN(b)) return '—';
+  if(b<1024) return b+' B';
+  if(b<1024*1024) return (b/1024).toFixed(0)+' KB';
+  return (b/1024/1024).toFixed(1)+' MB';
+}
+function fmtDate(iso){
+  try{ return new Date(iso).toLocaleString('ar-SA'); }catch(e){ return ''; }
+}
+function escapeHtml(s){
+  return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showListMsg(msg, isError){
+  const list=document.getElementById('fileList');
+  list.innerHTML='<p class="muted"'+(isError?' style="color:var(--danger)"':'')+'>'+escapeHtml(msg)+'</p>';
+}
+function isConfigReady(){
+  return FIREBASE_CONFIG.apiKey && !String(FIREBASE_CONFIG.apiKey).startsWith('PASTE_');
+}
+
+function setAdminUI(admin){
+  isAdmin=!!admin;
+  document.getElementById('uploadCard').classList.toggle('hidden', !isAdmin);
+  document.getElementById('readonlyNote').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('loginForm').classList.toggle('hidden', isAdmin);
+  document.getElementById('logoutBar').classList.toggle('hidden', !isAdmin);
+  if(isAdmin && auth.currentUser){
+    document.getElementById('authStatus').textContent = 'مسجّل: '+auth.currentUser.email;
+  }
+  renderList();
+}
+
+async function doLogin(){
+  const email=document.getElementById('adminEmail').value.trim();
+  const pass=document.getElementById('adminPass').value;
+  if(!email||!pass){ alert('أدخل البريد وكلمة المرور'); return; }
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+  try{
+    await auth.signInWithEmailAndPassword(email, pass);
+  }catch(e){
+    console.error(e);
+    alert('فشل الدخول: تحقق من البريد وكلمة المرور');
+  }
+  btn.disabled=false; btn.textContent='دخول';
+}
+async function doLogout(){
+  try{ await auth.signOut(); }catch(e){ console.error(e); }
+}
+
+async function doUpload(){
+  if(!isAdmin||!storage||!db) return;
+  const title=document.getElementById('fTitle').value.trim();
+  const note=document.getElementById('fNote').value.trim();
+  const file=document.getElementById('filePicker').files[0];
+  if(!title||!file){ alert('أدخل اسم الملف واختر الملف'); return; }
+  const btn=document.getElementById('uploadBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> جارِ الرفع...';
+  try{
+    const id = db.collection('files').doc().id;
+    const path = 'files/'+id+'/'+file.name;
+    const ref = storage.ref(path);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    await db.collection('files').doc(id).set({
+      title, note,
+      storagePath: path,
+      downloadURL: url,
+      contentType: file.type||'',
+      sizeBytes: file.size||0,
+      fileName: file.name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      uploaderEmail: auth.currentUser ? auth.currentUser.email : null
+    });
+    document.getElementById('fTitle').value='';
+    document.getElementById('fNote').value='';
+    document.getElementById('filePicker').value='';
+  }catch(e){
+    console.error(e);
+    alert('تعذر رفع الملف: '+(e.message||'خطأ غير معروف'));
+  }
+  btn.disabled=false; btn.textContent='رفع الملف';
+}
+
+function triggerUpdate(docId, oldPath){
+  updateTargetId=docId; updateTargetPath=oldPath||null;
+  document.getElementById('updatePicker').click();
+}
+document.getElementById('updatePicker').addEventListener('change', async function(ev){
+  const file=ev.target.files[0]; ev.target.value='';
+  if(!file||!updateTargetId||!isAdmin) return;
+  try{
+    const path = 'files/'+updateTargetId+'/'+file.name;
+    const ref = storage.ref(path);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    await db.collection('files').doc(updateTargetId).update({
+      storagePath: path,
+      downloadURL: url,
+      contentType: file.type||'',
+      sizeBytes: file.size||0,
+      fileName: file.name,
+      updatedAt: new Date().toISOString()
+    });
+    if(updateTargetPath && updateTargetPath!==path){
+      storage.ref(updateTargetPath).delete().catch(()=>{});
+    }
+  }catch(e){
+    console.error(e);
+    alert('تعذر تحديث الملف');
+  }
+  updateTargetId=null; updateTargetPath=null;
+});
+
+function startEdit(id){ editingId=id; renderList(); }
+function cancelEdit(){ editingId=null; renderList(); }
+async function saveEdit(id){
+  const t=document.getElementById('editTitle_'+id).value.trim();
+  const n=document.getElementById('editNote_'+id).value.trim();
+  if(!t){ alert('الاسم لا يمكن أن يكون فارغًا'); return; }
+  try{
+    await db.collection('files').doc(id).update({
+      title:t, note:n, updatedAt:new Date().toISOString()
+    });
+    editingId=null;
+  }catch(e){
+    console.error(e);
+    alert('تعذر حفظ التعديل');
+  }
+}
+
+async function delFile(docId, storagePath){
+  if(!confirm('حذف هذا الملف نهائيًا؟')) return;
+  try{
+    await db.collection('files').doc(docId).delete();
+    if(storagePath) storage.ref(storagePath).delete().catch(()=>{});
+  }catch(e){
+    console.error(e);
+    alert('تعذر الحذف');
+  }
+}
+
+function renderList(){
+  const list=document.getElementById('fileList');
+  document.getElementById('countLabel').textContent = currentFiles.length ? currentFiles.length+' ملف' : '';
+  if(!currentFiles.length){
+    list.innerHTML='<p class="muted">لا توجد ملفات بعد.</p>';
+    return;
+  }
+  list.innerHTML = currentFiles.map(f=>{
+    const safeId = String(f.id).replace(/[^a-zA-Z0-9_-]/g,'');
+    if(isAdmin && editingId===f.id){
+      return `<div class="file-row">
+        <div class="editrow" style="flex:1">
+          <input id="editTitle_${safeId}" value="${escapeHtml(f.title)}" placeholder="الاسم">
+          <input id="editNote_${safeId}" value="${escapeHtml(f.note||'')}" placeholder="ملاحظة">
+        </div>
+        <div class="factions">
+          <button class="gold" onclick="saveEdit('${safeId}')">حفظ</button>
+          <button class="ghost" onclick="cancelEdit()">إلغاء</button>
+        </div>
+      </div>`;
+    }
+    const actions = isAdmin
+      ? `<button class="ghost" onclick="startEdit('${safeId}')">تعديل</button>
+         <button class="ghost" onclick="triggerUpdate('${safeId}','${escapeHtml(f.storagePath||'')}')">تحديث الملف</button>
+         <button class="danger" onclick="delFile('${safeId}','${escapeHtml(f.storagePath||'')}')">حذف</button>`
+      : '';
+    const openBtn = f.downloadURL
+      ? `<a href="${escapeHtml(f.downloadURL)}" target="_blank" rel="noopener"><button class="primary">فتح</button></a>`
+      : '';
+    return `<div class="file-row">
+      <div class="finfo">
+        <div class="ftitle">${escapeHtml(f.title)}</div>
+        <div class="fmeta">${escapeHtml(f.fileName||'')} · ${fmtSize(f.sizeBytes)} · آخر تحديث ${fmtDate(f.updatedAt)}</div>
+        ${f.note ? '<div class="fmeta">'+escapeHtml(f.note)+'</div>' : ''}
+      </div>
+      <div class="factions">${openBtn}${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function subscribeFiles(){
+  if(unsub){ try{ unsub(); }catch(_){} unsub=null; }
+  unsub = db.collection('files').orderBy('updatedAt','desc').onSnapshot(
+    snap=>{
+      currentFiles = snap.docs.map(d=>{
+        const data=d.data()||{};
+        return {
+          id: d.id,
+          title: data.title||'',
+          note: data.note||'',
+          fileName: data.fileName||'',
+          storagePath: data.storagePath||'',
+          downloadURL: data.downloadURL||'',
+          sizeBytes: data.sizeBytes||0,
+          updatedAt: data.updatedAt||data.createdAt||''
+        };
+      });
+      renderList();
+    },
+    err=>{
+      console.error(err);
+      showListMsg('تعذر تحميل الملفات. تحقق من قواعد Firestore (القراءة يجب أن تكون مسموحة للجميع).', true);
+    }
+  );
+}
+
+async function init(){
+  const setupCard=document.getElementById('setupCard');
+  const setupStatus=document.getElementById('setupStatus');
+  const authCard=document.getElementById('authCard');
+
+  if(!isConfigReady()){
+    setupCard.classList.remove('hidden');
+    setupStatus.innerHTML='لم تُضبط بيانات Firebase بعد. ضع قيم <code>FIREBASE_CONFIG</code> داخل الملف ثم أعد تحميل الصفحة.';
+    showListMsg('في انتظار إعداد Firebase...', false);
+    return;
+  }
+
+  try{
+    app = firebase.initializeApp(FIREBASE_CONFIG);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    storage = firebase.storage();
+  }catch(e){
+    console.error(e);
+    setupStatus.textContent='فشل تهيئة Firebase: تحقق من صحة البيانات.';
+    showListMsg('تعذر الاتصال بـ Firebase.', true);
+    return;
+  }
+
+  setupCard.style.display='none';
+  authCard.style.display='block';
+
+  auth.onAuthStateChanged(user=>{
+    setAdminUI(!!user);
+  });
+
+  subscribeFiles();
+}
+
+init();
+</script>
+
+<!-- ============================================================
+   SECURITY RULES — نفّذها مرة واحدة من Firebase Console قبل النشر
+   الكود أعلاه لا يقيّد الكتابة إلا بمنطق الواجهة (isAdmin في المتصفح)،
+   وهذا وحده لا يحمي بياناتك؛ أي شخص يفتح الصفحة يمكنه تجاوز الواجهة
+   عبر أدوات المطوّر واستدعاء Firebase مباشرة. الحماية الفعلية تكون
+   فقط من قواعد Firestore و Storage التالية.
+
+   1) Authentication → Sign-in method: فعّل Email/Password فقط،
+      وأنشئ حساب المالك يدويًا من التبويب Users (لا تترك تسجيل
+      حسابات جديدة مفتوحًا من الواجهة — هذا الملف لا يحتوي شاشة
+      تسجيل أصلاً، فهذا مضمون طالما لم تُضِف واحدة).
+
+   2) Authentication → Users: انسخ الـ UID الخاص بحساب المالك،
+      وضعه بدل OWNER_UID_HERE في قسمي Firestore و Storage أدناه.
+
+   3) Firestore Database → Rules:
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /files/{fileId} {
+         allow read: if true;
+         allow write: if request.auth != null && request.auth.uid == "OWNER_UID_HERE";
+       }
+     }
+   }
+
+   4) Storage → Rules:
+   rules_version = '2';
+   service firebase.storage {
+     match /b/{bucket}/o {
+       match /files/{fileId}/{fileName} {
+         allow read: if true;
+         allow write: if request.auth != null && request.auth.uid == "OWNER_UID_HERE";
+       }
+     }
+   }
+
+   بعد حفظ القاعدتين، جرّب الدخول بحساب المالك وتأكد أن الرفع/التعديل/
+   الحذف يعمل، وأن فتح الصفحة من متصفح آخر (بدون تسجيل دخول) يسمح
+   بالعرض فقط.
+   ============================================================ -->
+</body>
+</html>
